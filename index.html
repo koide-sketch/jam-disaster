@@ -4,9 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <link rel="stylesheet" href="style.css">
-
     <title>JAM 災害時営業状況</title>
 </head>
 
@@ -22,12 +20,12 @@
 
             <h3>現在の営業状態</h3>
 
-            <div class="status normal">
+            <div id="status-title" class="status normal">
                 通常営業
             </div>
 
-            <p class="update">
-                更新日時：2026/07/01 18:00
+            <p id="updated-at" class="update">
+                更新日時：
             </p>
 
         </div>
@@ -36,7 +34,7 @@
 
             <h3>ご案内</h3>
 
-            <p>
+            <p id="status-message">
                 本日は通常どおり営業しております。
             </p>
 
@@ -53,6 +51,8 @@
         </div>
 
     </div>
+
+    <script src="script.js"></script>
 
 </body>
 
