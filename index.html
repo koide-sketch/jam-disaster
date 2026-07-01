@@ -15,6 +15,8 @@
 
     <!-- 状態バナー。data-status を JS が書き換えて色を変える -->
     <section id="banner" class="banner" data-status="loading" aria-live="polite">
+      <div class="banner__icon" id="statusIcon" aria-hidden="true"></div>
+      <p class="banner__caption">現在の営業・開講状況</p>
       <p class="banner__label" id="statusLabel">読み込み中…</p>
       <p class="banner__message" id="statusMessage"></p>
     </section>
@@ -36,12 +38,20 @@
       closed:  "休校",
     };
 
+    // 状態ごとのアイコン（色は CSS 側で currentColor により状態色になる）
+    const ICONS = {
+      normal:  '<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="22" fill="currentColor"/><path d="M15 24.5l6 6 12-13" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+      partial: '<svg viewBox="0 0 48 48"><path d="M24 5 45 41H3Z" fill="currentColor" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><path d="M24 19v9" stroke="#fff" stroke-width="4" stroke-linecap="round"/><circle cx="24" cy="34.5" r="2.6" fill="#fff"/></svg>',
+      closed:  '<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="22" fill="currentColor"/><path d="M17 17l14 14M31 17 17 31" stroke="#fff" stroke-width="4" stroke-linecap="round"/></svg>',
+    };
+
     const db = supabase.createClient(
       JAM_CONFIG.SUPABASE_URL,
       JAM_CONFIG.SUPABASE_PUBLISHABLE_KEY
     );
 
     const banner   = document.getElementById("banner");
+    const iconEl    = document.getElementById("statusIcon");
     const labelEl   = document.getElementById("statusLabel");
     const messageEl = document.getElementById("statusMessage");
     const updatedEl = document.getElementById("updatedAt");
@@ -64,12 +74,14 @@
 
       if (error) {
         banner.dataset.status = "error";
+        iconEl.innerHTML = "";
         labelEl.textContent = "状況を取得できませんでした";
         messageEl.textContent = "時間をおいて再度お試しください。";
         return;
       }
 
       banner.dataset.status = data.status;
+      iconEl.innerHTML      = ICONS[data.status] || "";
       labelEl.textContent   = LABELS[data.status] || data.status;
       messageEl.textContent = data.message || "";
       updatedEl.textContent = formatJST(data.updated_at);
