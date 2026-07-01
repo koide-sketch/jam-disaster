@@ -28,7 +28,7 @@ h2{
 
 .card,
 .status-card{
-    background:white;
+    background:#fff;
     border-radius:12px;
     padding:20px;
     margin-bottom:20px;
@@ -42,19 +42,20 @@ h2{
     font-size:26px;
     font-weight:bold;
     border-radius:10px;
+    transition:0.3s;
 }
 
-.normal{
+.status.normal{
     background:#dff7df;
     color:#137333;
 }
 
-.partial{
+.status.partial{
     background:#fff3cd;
     color:#8a6d00;
 }
 
-.closed{
+.status.closed{
     background:#ffd9d9;
     color:#b00020;
 }
