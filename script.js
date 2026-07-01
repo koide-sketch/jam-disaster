@@ -2,8 +2,8 @@
 // JAM 災害時営業状況
 // 営業状態切替
 // normal  : 通常営業
-// partial : 一部講師休講
-// closed  : 全館休講
+// partial : 一部休講
+// closed  : 休校
 // ===================================
 
 // ▼ここを書き換えるだけ
@@ -46,21 +46,21 @@ function setStatus(status) {
 
         case "partial":
 
-            title.textContent = "🟡 一部講師休講";
+            title.textContent = "🟡 一部休講";
             title.className = "status partial";
 
             message.textContent =
-                "一部講師が休講となります。対象の生徒様へ個別にご連絡いたします。";
+                "一部レッスンが休講となります。対象の生徒様へ個別にご連絡いたします。";
 
             break;
 
         case "closed":
 
-            title.textContent = "🔴 全館休講";
+            title.textContent = "🔴 休校";
             title.className = "status closed";
 
             message.textContent =
-                "本日は全館休講となります。振替対応につきましては後日ご案内いたします。";
+                "本日は休校となります。振替対応につきましては後日ご案内いたします。";
 
             break;
 
