@@ -1,53 +1,82 @@
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css">
-    <title>JAM 災害時営業状況</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JAM 営業状況</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
+<body class="page-public">
+  <main class="wrap">
+    <header class="site-head">
+      <p class="eyebrow">JAM</p>
+      <h1>本日の営業・開講状況</h1>
+    </header>
 
-<body>
+    <!-- 状態バナー。data-status を JS が書き換えて色を変える -->
+    <section id="banner" class="banner" data-status="loading" aria-live="polite">
+      <p class="banner__label" id="statusLabel">読み込み中…</p>
+      <p class="banner__message" id="statusMessage"></p>
+    </section>
 
-    <div class="container">
+    <footer class="site-foot">
+      <p class="updated">最終更新：<span id="updatedAt">—</span></p>
+      <button id="reloadBtn" class="link-btn" type="button">今すぐ更新</button>
+    </footer>
+  </main>
 
-        <h1>JAMミュージックスクール</h1>
-        <h2>災害時営業状況</h2>
+  <!-- Supabase JS クライアント（CDN。ビルド不要） -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script>
+    // 3つの状態と、それぞれの表示ラベル
+    const LABELS = {
+      normal:  "通常どおり",
+      partial: "一部休講",
+      closed:  "休校",
+    };
 
-        <div class="status-card">
-            <h3>現在の営業状態</h3>
+    const db = supabase.createClient(
+      JAM_CONFIG.SUPABASE_URL,
+      JAM_CONFIG.SUPABASE_PUBLISHABLE_KEY
+    );
 
-            <div id="status-title" class="status normal">
-                読み込み中...
-            </div>
+    const banner   = document.getElementById("banner");
+    const labelEl   = document.getElementById("statusLabel");
+    const messageEl = document.getElementById("statusMessage");
+    const updatedEl = document.getElementById("updatedAt");
 
-            <p id="updated-at" class="update">
-                更新日時：
-            </p>
-        </div>
+    function formatJST(iso) {
+      if (!iso) return "—";
+      return new Date(iso).toLocaleString("ja-JP", {
+        timeZone: "Asia/Tokyo",
+        year: "numeric", month: "long", day: "numeric",
+        hour: "2-digit", minute: "2-digit",
+      });
+    }
 
-        <div class="card">
-            <h3>ご案内</h3>
+    async function loadStatus() {
+      const { data, error } = await db
+        .from("disaster_status")
+        .select("status, message, updated_at")
+        .eq("id", 1)
+        .single();
 
-            <p id="status-message">
-                営業状況を読み込んでいます。
-            </p>
-        </div>
+      if (error) {
+        banner.dataset.status = "error";
+        labelEl.textContent = "状況を取得できませんでした";
+        messageEl.textContent = "時間をおいて再度お試しください。";
+        return;
+      }
 
-        <div class="card">
-            <h3>お問い合わせ</h3>
+      banner.dataset.status = data.status;
+      labelEl.textContent   = LABELS[data.status] || data.status;
+      messageEl.textContent = data.message || "";
+      updatedEl.textContent = formatJST(data.updated_at);
+    }
 
-            <p>
-                JAMミュージックスクール
-            </p>
-        </div>
-
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="script.js"></script>
-
+    document.getElementById("reloadBtn").addEventListener("click", loadStatus);
+    loadStatus(); // ページを開いたときに1回だけ読み込む
+  </script>
 </body>
-
 </html>

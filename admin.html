@@ -1,51 +1,171 @@
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>営業状態 管理画面</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>JAM 管理画面</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
+<body class="page-admin">
+  <main class="wrap">
+    <header class="site-head">
+      <p class="eyebrow">JAM 管理</p>
+      <h1>営業・開講状況の変更</h1>
+    </header>
 
-<body>
+    <!-- ① 未ログイン時に出るログインフォーム -->
+    <section id="loginView" class="card hidden">
+      <h2>管理者ログイン</h2>
+      <label class="field">
+        <span>メールアドレス</span>
+        <input id="email" type="email" autocomplete="username" />
+      </label>
+      <label class="field">
+        <span>パスワード</span>
+        <input id="password" type="password" autocomplete="current-password" />
+      </label>
+      <button id="loginBtn" class="btn btn--primary" type="button">ログイン</button>
+      <p id="loginError" class="msg msg--error"></p>
+    </section>
 
-    <div class="container">
+    <!-- ② ログイン後に出る操作パネル -->
+    <section id="panelView" class="card hidden">
+      <p class="signed-in">ログイン中：<span id="who"></span>
+        <button id="logoutBtn" class="link-btn" type="button">ログアウト</button>
+      </p>
 
-        <h1>管理画面</h1>
-        <h2>営業状態を変更</h2>
+      <p class="current">
+        現在の状態：<strong id="currentLabel">—</strong>
+      </p>
 
-        <div class="card">
-            <button onclick="updateStatus('normal')">通常営業</button>
-            <button onclick="updateStatus('partial')">一部休講</button>
-            <button onclick="updateStatus('closed')">休校</button>
-        </div>
+      <div class="choices" role="group" aria-label="状態を選択">
+        <button class="choice choice--normal"  data-status="normal"  type="button">通常どおり</button>
+        <button class="choice choice--partial" data-status="partial" type="button">一部休講</button>
+        <button class="choice choice--closed"  data-status="closed"  type="button">休校</button>
+      </div>
 
-        <div class="status-card">
-            <h3>現在の営業状態</h3>
+      <label class="field">
+        <span>公開ページに表示するメッセージ</span>
+        <textarea id="message" rows="3" placeholder="例：本日は通常どおり営業しております。"></textarea>
+      </label>
 
-            <div id="status-title" class="status normal">
-                読み込み中...
-            </div>
+      <button id="saveBtn" class="btn btn--primary" type="button">この内容で公開する</button>
+      <p id="saveMsg" class="msg"></p>
+    </section>
+  </main>
 
-            <p id="updated-at" class="update">
-                更新日時：
-            </p>
-        </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script>
+    const LABELS = { normal: "通常どおり", partial: "一部休講", closed: "休校" };
 
-        <div class="card">
-            <h3>ご案内</h3>
+    const db = supabase.createClient(
+      JAM_CONFIG.SUPABASE_URL,
+      JAM_CONFIG.SUPABASE_PUBLISHABLE_KEY
+    );
 
-            <p id="status-message">
-                営業状況を読み込んでいます。
-            </p>
-        </div>
+    const loginView = document.getElementById("loginView");
+    const panelView = document.getElementById("panelView");
+    const loginError = document.getElementById("loginError");
+    const saveMsg   = document.getElementById("saveMsg");
+    const messageEl = document.getElementById("message");
+    const currentLabel = document.getElementById("currentLabel");
 
-    </div>
+    let selectedStatus = null;
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="script.js"></script>
+    function show(view) {
+      loginView.classList.toggle("hidden", view !== "login");
+      panelView.classList.toggle("hidden", view !== "panel");
+    }
 
+    // --- ログイン状態に応じて画面を切り替え ---
+    async function refreshSession() {
+      const { data: { session } } = await db.auth.getSession();
+      if (session) {
+        document.getElementById("who").textContent = session.user.email;
+        show("panel");
+        await loadCurrent();
+      } else {
+        show("login");
+      }
+    }
+
+    // --- ログイン ---
+    document.getElementById("loginBtn").addEventListener("click", async () => {
+      loginError.textContent = "";
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      const { error } = await db.auth.signInWithPassword({ email, password });
+      if (error) {
+        loginError.textContent = "ログインできませんでした。メールアドレスとパスワードをご確認ください。";
+        return;
+      }
+      await refreshSession();
+    });
+
+    // --- ログアウト ---
+    document.getElementById("logoutBtn").addEventListener("click", async () => {
+      await db.auth.signOut();
+      await refreshSession();
+    });
+
+    // --- 現在の状態を読み込み ---
+    async function loadCurrent() {
+      const { data, error } = await db
+        .from("disaster_status")
+        .select("status, message")
+        .eq("id", 1)
+        .single();
+      if (error) return;
+      selectedStatus = data.status;
+      currentLabel.textContent = LABELS[data.status] || data.status;
+      messageEl.value = data.message || "";
+      highlightSelected();
+    }
+
+    function highlightSelected() {
+      document.querySelectorAll(".choice").forEach((b) => {
+        b.classList.toggle("is-selected", b.dataset.status === selectedStatus);
+      });
+    }
+
+    document.querySelectorAll(".choice").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        selectedStatus = btn.dataset.status;
+        highlightSelected();
+      });
+    });
+
+    // --- 保存（＝公開ページへ即反映） ---
+    document.getElementById("saveBtn").addEventListener("click", async () => {
+      saveMsg.textContent = "";
+      saveMsg.className = "msg";
+      if (!selectedStatus) {
+        saveMsg.textContent = "状態を選んでください。";
+        saveMsg.classList.add("msg--error");
+        return;
+      }
+      const { error } = await db
+        .from("disaster_status")
+        .update({
+          status: selectedStatus,
+          message: messageEl.value.trim(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", 1);
+
+      if (error) {
+        saveMsg.textContent = "保存できませんでした。ログインが切れている場合は再度ログインしてください。";
+        saveMsg.classList.add("msg--error");
+        return;
+      }
+      currentLabel.textContent = LABELS[selectedStatus];
+      saveMsg.textContent = "公開しました。公開ページに反映されています。";
+      saveMsg.classList.add("msg--ok");
+    });
+
+    refreshSession();
+  </script>
 </body>
-
 </html>
