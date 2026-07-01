@@ -1,27 +1,30 @@
+console.log("SCRIPT VERSION 2");
+
+
 // ===================================
 // Supabase設定
 // ===================================
 
-const SUPABASE_URL = "zzfdhammevskofaqyrac";
-const SUPABASE_ANON_KEY = "ap-northeast-1";
+const SUPABASE_URL = "";
+const SUPABASE_ANON_KEY = "";
 
 const TABLE_NAME = "disaster_status";
 const RECORD_ID = 1;
 
 // ===================================
-// Supabase準備
+// Supabase接続
 // ===================================
 
-const supabaseClient = supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_ANON_KEY
-);
+let supabaseClient = null;
 
-// ===================================
-// ページ読み込み時
-// ===================================
+document.addEventListener("DOMContentLoaded", function () {
+    supabaseClient = window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_ANON_KEY
+    );
 
-loadStatus();
+    loadStatus();
+});
 
 // ===================================
 // Supabaseから営業状態を取得
@@ -47,7 +50,6 @@ async function loadStatus() {
 // ===================================
 
 async function updateStatus(status) {
-
     const messages = {
         normal: "本日は通常どおり営業しております。",
         partial: "一部レッスンが休講となります。対象の生徒様へ個別にご連絡いたします。",
@@ -73,12 +75,14 @@ async function updateStatus(status) {
     alert("更新しました。");
 }
 
+// HTMLのonclickから使えるようにする
+window.updateStatus = updateStatus;
+
 // ===================================
 // 画面表示を変更
 // ===================================
 
 function setStatus(status, message, updatedAt) {
-
     const title = document.getElementById("status-title");
     const messageArea = document.getElementById("status-message");
     const updated = document.getElementById("updated-at");
@@ -87,26 +91,18 @@ function setStatus(status, message, updatedAt) {
         return;
     }
 
-    switch (status) {
-
-        case "normal":
-            title.textContent = "🟢 通常営業";
-            title.className = "status normal";
-            break;
-
-        case "partial":
-            title.textContent = "🟡 一部休講";
-            title.className = "status partial";
-            break;
-
-        case "closed":
-            title.textContent = "🔴 休校";
-            title.className = "status closed";
-            break;
-
-        default:
-            title.textContent = "状態不明";
-            title.className = "status";
+    if (status === "normal") {
+        title.textContent = "🟢 通常営業";
+        title.className = "status normal";
+    } else if (status === "partial") {
+        title.textContent = "🟡 一部休講";
+        title.className = "status partial";
+    } else if (status === "closed") {
+        title.textContent = "🔴 休校";
+        title.className = "status closed";
+    } else {
+        title.textContent = "状態不明";
+        title.className = "status";
     }
 
     messageArea.textContent = message;
